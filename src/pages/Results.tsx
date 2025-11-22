@@ -95,6 +95,7 @@ const Results = () => {
 
         if (goalError) {
           console.error('Error creating goal:', goalError);
+          throw new Error('Failed to create goal');
         } else if (goalRecord) {
           // Create daily tasks linked to this goal
           const dailyGoals = data.dailyTasks.map((task: string) => ({
@@ -110,14 +111,25 @@ const Results = () => {
 
           if (dailyError) {
             console.error('Error creating daily goals:', dailyError);
+            throw new Error('Failed to create daily goals');
           }
+          
+          // Navigate to Today page after successful creation
+          toast({
+            title: "Goals Created!",
+            description: "Navigating to your daily tasks...",
+          });
+          
+          setTimeout(() => {
+            navigate('/today');
+          }, 1500);
         }
+      } else {
+        toast({
+          title: "Action Plan Generated",
+          description: "Your personalized plan is ready"
+        });
       }
-
-      toast({
-        title: "Action Plan Generated",
-        description: "Your personalized plan is ready"
-      });
     } catch (error) {
       console.error('Error generating action plan:', error);
       toast({
