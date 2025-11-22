@@ -1,12 +1,12 @@
-import LiveKitVoice from "@/components/LiveKitVoice";
+import OpenAIVoiceInterface from "@/components/OpenAIVoiceInterface";
 
 const Interview = () => {
-  // Generate unique room name for each session
-  const roomName = `therapy-session-${Date.now()}`;
+  // Generate unique session name
+  const sessionName = `interview-${Date.now()}`;
 
   const handleTranscriptComplete = (transcript: string[]) => {
     console.log('Session transcript:', transcript);
-    // Here you can save the transcript to the database or process it
+    // Transcript is passed to results page via navigation state
   };
 
   return (
@@ -22,10 +22,10 @@ const Interview = () => {
           </p>
         </div>
 
-        {/* LiveKit Voice Interface */}
+        {/* OpenAI Voice Interface */}
         <div className="animate-in fade-in zoom-in duration-700 delay-200">
-          <LiveKitVoice 
-            roomName={roomName} 
+          <OpenAIVoiceInterface 
+            roomName={sessionName} 
             onTranscriptComplete={handleTranscriptComplete}
           />
         </div>
