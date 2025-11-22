@@ -1,161 +1,279 @@
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Share2, Home } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Download, Upload, Home, Play } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Results = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  
+  const [transcript, setTranscript] = useState<string[]>([]);
+  const [therapistImage, setTherapistImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [actionPlan, setActionPlan] = useState<string>("");
+  const [videoUrl, setVideoUrl] = useState<string>("");
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
-  const handleDownload = () => {
-    toast({
-      title: "Download Started",
-      description: "Your treatment plan video is downloading...",
-    });
-    // TODO: Implement actual download from VEED
+  useEffect(() => {
+    // Get transcript from navigation state
+    if (location.state?.transcript) {
+      setTranscript(location.state.transcript);
+    } else {
+      toast({
+        title: "No transcript found",
+        description: "Please complete an interview first",
+        variant: "destructive"
+      });
+      navigate('/interview');
+    }
+  }, [location.state, navigate, toast]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setTherapistImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  const handleShare = () => {
+  const generateActionPlan = async () => {
+    if (transcript.length === 0) {
+      toast({
+        title: "No transcript",
+        description: "Complete an interview first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGeneratingPlan(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-action-plan', {
+        body: { transcript }
+      });
+
+      if (error) throw error;
+
+      setActionPlan(data.actionPlan);
+      toast({
+        title: "Action Plan Generated",
+        description: "Your personalized plan is ready"
+      });
+    } catch (error) {
+      console.error('Error generating action plan:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate action plan",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingPlan(false);
+    }
+  };
+
+  const generateVideo = async () => {
+    if (!actionPlan) {
+      toast({
+        title: "Generate plan first",
+        description: "Please generate the action plan before creating the video",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!therapistImage) {
+      toast({
+        title: "Upload image",
+        description: "Please upload a therapist image",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsGeneratingVideo(true);
+    try {
+      // Convert image to base64
+      const reader = new FileReader();
+      reader.readAsDataURL(therapistImage);
+      
+      await new Promise((resolve) => {
+        reader.onloadend = resolve;
+      });
+
+      const imageBase64 = reader.result as string;
+
+      const { data, error } = await supabase.functions.invoke('generate-video', {
+        body: { 
+          script: actionPlan,
+          imageUrl: imageBase64
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.videoUrl) {
+        setVideoUrl(data.videoUrl);
+        toast({
+          title: "Video Generated!",
+          description: "Your personalized video is ready"
+        });
+      } else {
+        throw new Error('No video URL returned');
+      }
+    } catch (error) {
+      console.error('Error generating video:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate video. Please check your API key.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingVideo(false);
+    }
+  };
+
+  const downloadActionPlan = () => {
+    if (!actionPlan) return;
+    
+    const blob = new Blob([actionPlan], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'action-plan.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
     toast({
-      title: "Share Options",
-      description: "Share your treatment plan with your healthcare provider.",
+      title: "Download Started",
+      description: "Your action plan is downloading..."
     });
-    // TODO: Implement share functionality
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 py-12 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12 animate-in fade-in slide-in-from-top duration-700">
+        <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Your Personalized Treatment Plan
+            Your Personalized Action Plan
           </h1>
           <p className="text-lg text-muted-foreground">
-            Here's a video summary created just for you, based on our conversation.
+            Generate a video summary with your AI coach
           </p>
         </div>
 
-        {/* Video Card */}
-        <Card className="p-4 border-2 mb-8 animate-in fade-in zoom-in duration-700 delay-200">
-          {/* Video Player Placeholder - Will integrate with VEED */}
-          <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
-            <div className="text-center space-y-4 p-8">
-              <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto">
-                <svg 
-                  className="h-10 w-10 text-primary" 
-                  fill="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </div>
-              <p className="text-muted-foreground">
-                Your personalized treatment plan video will appear here
-              </p>
-              <p className="text-sm text-muted-foreground">
-                (VEED video integration pending)
-              </p>
+        {/* Step 1: Upload Therapist Image */}
+        <Card className="p-6 mb-6">
+          <h2 className="text-2xl font-semibold mb-4">Step 1: Upload Coach Image</h2>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="therapist-image">Choose an image of your coach</Label>
+              <Input
+                id="therapist-image"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="mt-2"
+              />
             </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Button size="lg" onClick={handleDownload} className="px-8">
-              <Download className="mr-2 h-5 w-5" />
-              Download Video
-            </Button>
-            <Button size="lg" variant="outline" onClick={handleShare} className="px-8">
-              <Share2 className="mr-2 h-5 w-5" />
-              Share
-            </Button>
-            <Button 
-              size="lg" 
-              variant="secondary" 
-              onClick={() => navigate('/')}
-              className="px-8"
-            >
-              <Home className="mr-2 h-5 w-5" />
-              Return Home
-            </Button>
+            {imagePreview && (
+              <div className="mt-4">
+                <p className="text-sm text-muted-foreground mb-2">Preview:</p>
+                <img 
+                  src={imagePreview} 
+                  alt="Therapist preview" 
+                  className="w-32 h-32 object-cover rounded-lg border"
+                />
+              </div>
+            )}
           </div>
         </Card>
 
-        {/* Treatment Plan Summary */}
-        <div className="grid md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom duration-700 delay-400">
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-4 flex items-center">
-              <span className="bg-primary/10 w-8 h-8 rounded-full flex items-center justify-center mr-3">
-                <span className="text-primary font-bold">1</span>
-              </span>
-              Key Issues Identified
-            </h3>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>• Based on your interview responses</li>
-              <li>• Personalized to your situation</li>
-              <li>• Prioritized by importance</li>
-            </ul>
-          </Card>
+        {/* Step 2: Generate Action Plan */}
+        <Card className="p-6 mb-6">
+          <h2 className="text-2xl font-semibold mb-4">Step 2: Generate Action Plan</h2>
+          <Button 
+            onClick={generateActionPlan} 
+            disabled={isGeneratingPlan || transcript.length === 0}
+            className="mb-4"
+          >
+            {isGeneratingPlan ? "Generating..." : "Generate Action Plan"}
+          </Button>
+          
+          {actionPlan && (
+            <div className="mt-4">
+              <div className="flex justify-between items-center mb-2">
+                <p className="font-semibold">Your Action Plan:</p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={downloadActionPlan}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download as TXT
+                </Button>
+              </div>
+              <div className="p-4 bg-muted rounded-lg whitespace-pre-wrap">
+                {actionPlan}
+              </div>
+            </div>
+          )}
+        </Card>
 
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-4 flex items-center">
-              <span className="bg-accent/10 w-8 h-8 rounded-full flex items-center justify-center mr-3">
-                <span className="text-accent font-bold">2</span>
-              </span>
-              Recommended Actions
-            </h3>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>• Tailored behavioral strategies</li>
-              <li>• Step-by-step guidance</li>
-              <li>• Aligned with your preferences</li>
-            </ul>
-          </Card>
+        {/* Step 3: Generate Video */}
+        <Card className="p-6 mb-6">
+          <h2 className="text-2xl font-semibold mb-4">Step 3: Generate Video</h2>
+          <Button 
+            onClick={generateVideo}
+            disabled={isGeneratingVideo || !actionPlan || !therapistImage}
+            size="lg"
+          >
+            {isGeneratingVideo ? "Generating Video..." : "Generate Video"}
+          </Button>
+          
+          {videoUrl && (
+            <div className="mt-6">
+              <h3 className="font-semibold mb-3">Your Personalized Video:</h3>
+              <video 
+                controls 
+                className="w-full rounded-lg border"
+                src={videoUrl}
+              >
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          )}
+        </Card>
 
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-4 flex items-center">
-              <span className="bg-secondary/10 w-8 h-8 rounded-full flex items-center justify-center mr-3">
-                <span className="text-secondary font-bold">3</span>
-              </span>
-              Progress Tracking
-            </h3>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>• Measurable milestones</li>
-              <li>• Regular check-ins</li>
-              <li>• Adjust as you grow</li>
-            </ul>
-          </Card>
-
-          <Card className="p-6">
-            <h3 className="text-xl font-semibold mb-4 flex items-center">
-              <span className="bg-primary/10 w-8 h-8 rounded-full flex items-center justify-center mr-3">
-                <span className="text-primary font-bold">4</span>
-              </span>
-              Support Resources
-            </h3>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>• Recommended tools and techniques</li>
-              <li>• Additional reading materials</li>
-              <li>• Community support options</li>
-            </ul>
-          </Card>
+        {/* Action Buttons */}
+        <div className="flex justify-center gap-4">
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/')}
+          >
+            <Home className="mr-2 h-5 w-5" />
+            Return Home
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => navigate('/today')}
+          >
+            View Today's Goals
+          </Button>
         </div>
-
-        {/* Next Steps */}
-        <Card className="mt-8 p-8 bg-primary/5 border-primary/20 animate-in fade-in duration-700 delay-600">
-          <h3 className="text-2xl font-semibold mb-4 text-center">Next Steps</h3>
-          <div className="max-w-2xl mx-auto text-center space-y-4 text-muted-foreground">
-            <p>
-              Review your personalized video and take notes on key points that resonate with you.
-            </p>
-            <p>
-              Share this plan with your healthcare provider or therapist to integrate it into your overall care.
-            </p>
-            <p className="font-semibold text-foreground">
-              Remember: This is a starting point. Your journey is unique, and progress happens one step at a time.
-            </p>
-          </div>
-        </Card>
       </div>
     </div>
   );

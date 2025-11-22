@@ -14,3 +14,9 @@ verify_jwt = false
 
 [functions.therapy-chat]
 verify_jwt = false
+
+[functions.generate-action-plan]
+verify_jwt = false
+
+[functions.generate-video]
+verify_jwt = false
