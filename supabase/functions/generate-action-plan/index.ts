@@ -22,20 +22,6 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY not configured');
     }
 
-    // Create a system prompt for extracting action plan
-    const systemPrompt = `You are an expert goal coach. Analyze the conversation transcript and create a personalized action plan.
-
-Extract and format:
-1. The user's goal (what they want to achieve, how they'll measure it, and their timeline)
-2. Current reality/situation
-3. Key insights from the conversation
-4. 5-7 concrete daily action steps to achieve the goal
-
-Format the output as a natural, encouraging script for a video presentation. 
-Use "you" and "your" to speak directly to the viewer.
-Keep it under 300 words.
-Start with affirming their goal, then outline the action steps in a clear, motivating way.`;
-
     // Combine transcript into a single conversation
     const conversationText = transcript.map((msg: string) => msg).join('\n');
 
@@ -50,11 +36,37 @@ Start with affirming their goal, then outline the action steps in a clear, motiv
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: conversationText }
+          { 
+            role: 'system', 
+            content: 'You are a supportive life coach. You extract clear goals and actionable tasks from conversations. Always respond with valid JSON only.'
+          },
+          { 
+            role: 'user', 
+            content: `Based on this coaching conversation transcript, extract the user's main goal and create 3-5 specific, actionable daily tasks.
+
+Transcript:
+${conversationText}
+
+You must respond with valid JSON in this exact format:
+{
+  "mainGoal": "Clear statement of their main goal",
+  "description": "Brief context about what they want to achieve (1-2 sentences)",
+  "dailyTasks": [
+    "First specific actionable task",
+    "Second specific actionable task",
+    "Third specific actionable task"
+  ]
+}
+
+Rules:
+- mainGoal should be clear and specific (e.g., "Improve my fitness" or "Learn Spanish")
+- Each dailyTask must be a single, concrete action they can do today
+- Keep tasks simple and achievable
+- Return ONLY valid JSON, no other text`
+          }
         ],
         temperature: 0.7,
-        max_tokens: 500
+        response_format: { type: "json_object" }
       }),
     });
 
@@ -65,11 +77,11 @@ Start with affirming their goal, then outline the action steps in a clear, motiv
     }
 
     const data = await response.json();
-    const actionPlan = data.choices[0].message.content;
+    const result = JSON.parse(data.choices[0].message.content);
     
-    console.log('Action plan generated successfully');
+    console.log('Action plan generated successfully:', result);
 
-    return new Response(JSON.stringify({ actionPlan }), {
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
