@@ -18,6 +18,7 @@ const Results = () => {
   const [therapistImage, setTherapistImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [actionPlan, setActionPlan] = useState<string>("");
+  const [goalData, setGoalData] = useState<{mainGoal: string, description: string, dailyTasks: string[]} | null>(null);
   const [videoUrl, setVideoUrl] = useState<string>("");
   const [audioUrl, setAudioUrl] = useState<string>("");
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
@@ -67,7 +68,52 @@ const Results = () => {
 
       if (error) throw error;
 
-      setActionPlan(data.actionPlan);
+      // Store the structured goal data
+      setGoalData(data);
+      
+      // Create a readable action plan text for display and video
+      const planText = `${data.mainGoal}\n\n${data.description}\n\nDaily Actions:\n${data.dailyTasks.map((task: string, i: number) => `${i + 1}. ${task}`).join('\n')}`;
+      setActionPlan(planText);
+
+      // Save goal to database
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && data.mainGoal) {
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Create the main goal
+        const { data: goalRecord, error: goalError } = await supabase
+          .from('goals')
+          .insert({
+            user_id: user.id,
+            title: data.mainGoal,
+            description: data.description,
+            smart_goal: {},
+            category: 'personal'
+          })
+          .select()
+          .single();
+
+        if (goalError) {
+          console.error('Error creating goal:', goalError);
+        } else if (goalRecord) {
+          // Create daily tasks linked to this goal
+          const dailyGoals = data.dailyTasks.map((task: string) => ({
+            goal_id: goalRecord.id,
+            task,
+            date: today,
+            completed: false
+          }));
+
+          const { error: dailyError } = await supabase
+            .from('daily_goals')
+            .insert(dailyGoals);
+
+          if (dailyError) {
+            console.error('Error creating daily goals:', dailyError);
+          }
+        }
+      }
+
       toast({
         title: "Action Plan Generated",
         description: "Your personalized plan is ready"
