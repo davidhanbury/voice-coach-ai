@@ -52,10 +52,37 @@ serve(async (req) => {
 
       const data = await response.json();
       
-      console.log('Video generation successful', data);
+      console.log('Video generation response from fal.ai:', JSON.stringify(data, null, 2));
+
+      // Extract video URL from fal.ai response
+      // fal.ai typically returns: { video: { url: "..." } } or { video_url: "..." }
+      let videoUrl = null;
+      
+      if (data.video && typeof data.video === 'object' && data.video.url) {
+        videoUrl = data.video.url;
+      } else if (data.video_url) {
+        videoUrl = data.video_url;
+      } else if (typeof data.video === 'string') {
+        videoUrl = data.video;
+      }
+
+      console.log('Extracted video URL:', videoUrl);
+
+      if (!videoUrl) {
+        console.error('No video URL found in response:', data);
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: 'no_video_url',
+          message: 'Video was generated but no URL was returned',
+          rawResponse: data
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       return new Response(JSON.stringify({ 
-        videoUrl: data.video?.url || data.video_url,
+        videoUrl: videoUrl,
         requestId: data.request_id,
         success: true
       }), {
