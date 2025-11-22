@@ -26,11 +26,10 @@ serve(async (req) => {
     const systemPrompt = `You are an expert goal coach. Analyze the conversation transcript and create a personalized action plan.
 
 Extract and format:
-1. The user's SMART goal (Specific, Measurable, Achievable, Relevant, Time-bound)
+1. The user's goal (what they want to achieve, how they'll measure it, and their timeline)
 2. Current reality/situation
-3. Key obstacles identified
-4. Vision of success
-5. 5-7 concrete daily action steps to achieve the goal
+3. Key insights from the conversation
+4. 5-7 concrete daily action steps to achieve the goal
 
 Format the output as a natural, encouraging script for a video presentation. 
 Use "you" and "your" to speak directly to the viewer.

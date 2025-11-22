@@ -2,11 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Calendar as CalendarIcon, CheckCircle2, Trophy, Flame, Award } from "lucide-react";
+import { Calendar as CalendarIcon, CheckCircle2, Trophy, Flame, Award } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import confetti from "canvas-confetti";
 
@@ -55,7 +54,7 @@ const Today = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        navigate('/');
+        navigate('/interview');
         return;
       }
 
@@ -281,156 +280,150 @@ const Today = () => {
   const totalCount = dailyGoals.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 py-12 px-4 pb-24">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 pb-24">
+      <div className="max-w-md mx-auto px-4">
         {/* Video Section */}
         {videoUrl && (
-          <Card className="mb-8">
-            <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Your Coach's Message</h2>
-              <video 
-                controls 
-                className="w-full rounded-lg"
-                src={videoUrl}
-              >
-                Your browser does not support the video tag.
-              </video>
-            </CardContent>
-          </Card>
+          <div className="pt-6 pb-4">
+            <Card>
+              <CardContent className="p-4">
+                <h2 className="text-lg font-semibold mb-3">Your Coach's Message</h2>
+                <video 
+                  controls 
+                  className="w-full rounded-lg"
+                  src={videoUrl}
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </CardContent>
+            </Card>
+          </div>
         )}
         
         {/* Celebration Banner */}
         {showCelebration && (
-          <Card className="mb-8 bg-gradient-to-r from-primary/20 to-accent/20 border-primary">
-            <CardContent className="p-6 text-center">
-              <Trophy className="h-12 w-12 mx-auto mb-2 text-primary" />
-              <h2 className="text-2xl font-bold">🎉 All Goals Complete! 🎉</h2>
-              <p className="text-muted-foreground mt-2">You're crushing it today!</p>
-            </CardContent>
-          </Card>
+          <div className="pt-6 pb-4">
+            <Card className="bg-gradient-to-r from-primary/20 to-accent/20 border-primary">
+              <CardContent className="p-4 text-center">
+                <Trophy className="h-10 w-10 mx-auto mb-2 text-primary" />
+                <h2 className="text-xl font-bold">🎉 All Goals Complete! 🎉</h2>
+                <p className="text-muted-foreground text-sm mt-1">You're crushing it today!</p>
+              </CardContent>
+            </Card>
+          </div>
         )}
         
         {/* Streak & Awards */}
         {(streakData.current > 0 || awards.length > 0) && (
-          <div className="grid md:grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-2 gap-3 py-4">
             {streakData.current > 0 && (
               <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3">
-                    <Flame className="h-8 w-8 text-orange-500" />
-                    <div>
-                      <p className="text-2xl font-bold">{streakData.current} Days</p>
-                      <p className="text-sm text-muted-foreground">Current Streak</p>
-                    </div>
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <Flame className="h-7 w-7 text-orange-500 mb-2" />
+                    <p className="text-xl font-bold">{streakData.current}</p>
+                    <p className="text-xs text-muted-foreground">Day Streak</p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Longest: {streakData.longest} days
-                  </p>
                 </CardContent>
               </Card>
             )}
             
             {awards.length > 0 && (
               <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3">
-                    <Award className="h-8 w-8 text-primary" />
-                    <div>
-                      <p className="text-2xl font-bold">{awards.length}</p>
-                      <p className="text-sm text-muted-foreground">Awards Earned</p>
-                    </div>
+                <CardContent className="p-4">
+                  <div className="flex flex-col items-center text-center">
+                    <Award className="h-7 w-7 text-primary mb-2" />
+                    <p className="text-xl font-bold">{awards.length}</p>
+                    <p className="text-xs text-muted-foreground">Awards</p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Latest: {awards[0]?.title || 'None yet'}
-                  </p>
                 </CardContent>
               </Card>
             )}
           </div>
         )}
+        
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/')}
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
+        <div className="flex items-center justify-between py-6">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Today</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {new Date().toLocaleDateString('en-US', { 
+                month: 'short',
+                day: 'numeric'
+              })}
+            </p>
+          </div>
           <Button
             variant="outline"
+            size="sm"
             onClick={() => navigate('/calendar')}
             className="gap-2"
           >
             <CalendarIcon className="h-4 w-4" />
-            Calendar View
+            Calendar
           </Button>
         </div>
 
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Today's Goals
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            {new Date().toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </p>
-          {totalCount > 0 && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-muted-foreground">
-              <CheckCircle2 className="h-5 w-5 text-primary" />
-              <span>{completedCount} of {totalCount} completed</span>
+        {/* Progress Stats */}
+        {totalCount > 0 && (
+          <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Progress</span>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">{completedCount}/{totalCount}</span>
+              </div>
+            </div>
+            <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary transition-all duration-500"
+                style={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Daily Goals */}
+        <div className="pb-4">
+          {loading ? (
+            <div className="text-center text-muted-foreground py-12">Loading...</div>
+          ) : dailyGoals.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <p className="text-muted-foreground mb-4">
+                  No goals for today yet
+                </p>
+                <Button onClick={() => navigate('/interview')} size="sm">
+                  Set Your First Goal
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {dailyGoals.map((goal) => (
+                <Card key={goal.id} className="overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={goal.completed}
+                        onCheckedChange={() => toggleGoalComplete(goal.id, goal.completed)}
+                        className="mt-1"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-medium text-sm ${goal.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                          {goal.task}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                          {goal.goal_title}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
         </div>
-
-        {/* Daily Goals */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Tasks</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="text-center text-muted-foreground py-8">Loading...</p>
-            ) : dailyGoals.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-4">
-                  No goals scheduled for today
-                </p>
-                <Button onClick={() => navigate('/interview')}>
-                  Create Your First Goal
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {dailyGoals.map((goal) => (
-                  <div
-                    key={goal.id}
-                    className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                  >
-                    <Checkbox
-                      checked={goal.completed}
-                      onCheckedChange={() => toggleGoalComplete(goal.id, goal.completed)}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <p className={`font-medium ${goal.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                        {goal.task}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Goal: {goal.goal_title}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
       
       <BottomNav />
