@@ -53,8 +53,10 @@ const Today = () => {
   const fetchTodayGoals = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      
+      // If no user, still show the page but without goals
       if (!user) {
-        navigate('/interview');
+        setLoading(false);
         return;
       }
 
@@ -126,7 +128,10 @@ const Today = () => {
   const fetchLatestVideo = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       
       const { data, error } = await supabase
         .from('video_results')
