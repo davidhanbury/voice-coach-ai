@@ -7,6 +7,7 @@ import { Download, Upload, Home, Play } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import BottomNav from "@/components/BottomNav";
 
 const Results = () => {
   const navigate = useNavigate();
@@ -140,10 +141,26 @@ const Results = () => {
       // Check if video generation was successful
       if (data.success && data.videoUrl) {
         setVideoUrl(data.videoUrl);
+        
+        // Save video to database
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('video_results').insert({
+            user_id: user.id,
+            video_url: data.videoUrl,
+            action_plan: actionPlan
+          });
+        }
+        
         toast({
           title: "Video Generated!",
-          description: "Your personalized video is ready"
+          description: "Navigating to Today's Goals...",
         });
+        
+        // Navigate to Today page after 2 seconds
+        setTimeout(() => {
+          navigate('/today', { state: { videoUrl: data.videoUrl } });
+        }, 2000);
       } else if (data.success === false && data.error === 'connection_failed') {
         // Handle connection errors gracefully
         toast({
@@ -186,7 +203,7 @@ const Results = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 py-12 px-4 pb-24">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
@@ -312,6 +329,8 @@ const Results = () => {
           </Button>
         </div>
       </div>
+      
+      <BottomNav />
     </div>
   );
 };

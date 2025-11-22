@@ -7,7 +7,7 @@ import Index from "./pages/Index";
 import Interview from "./pages/Interview";
 import Results from "./pages/Results";
 import Today from "./pages/Today";
-import Calendar from "./pages/Calendar";
+import Calendar from "./pages/CalendarNew";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

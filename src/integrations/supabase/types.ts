@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      awards: {
+        Row: {
+          description: string | null
+          earned_at: string
+          icon: string | null
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          description?: string | null
+          earned_at?: string
+          icon?: string | null
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          description?: string | null
+          earned_at?: string
+          icon?: string | null
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_goals: {
         Row: {
           completed: boolean
@@ -51,10 +78,13 @@ export type Database = {
       }
       goals: {
         Row: {
+          category: string | null
+          color: string | null
           completed: boolean
           created_at: string
           description: string | null
           id: string
+          notes: string | null
           obstacles: string[] | null
           reality: string | null
           smart_goal: Json
@@ -65,10 +95,13 @@ export type Database = {
           vision: string | null
         }
         Insert: {
+          category?: string | null
+          color?: string | null
           completed?: boolean
           created_at?: string
           description?: string | null
           id?: string
+          notes?: string | null
           obstacles?: string[] | null
           reality?: string | null
           smart_goal: Json
@@ -79,10 +112,13 @@ export type Database = {
           vision?: string | null
         }
         Update: {
+          category?: string | null
+          color?: string | null
           completed?: boolean
           created_at?: string
           description?: string | null
           id?: string
+          notes?: string | null
           obstacles?: string[] | null
           reality?: string | null
           smart_goal?: Json
@@ -91,6 +127,60 @@ export type Database = {
           updated_at?: string
           user_id?: string
           vision?: string | null
+        }
+        Relationships: []
+      }
+      streaks: {
+        Row: {
+          created_at: string
+          current_streak: number | null
+          id: string
+          last_completed_date: string | null
+          longest_streak: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_completed_date?: string | null
+          longest_streak?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_completed_date?: string | null
+          longest_streak?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      video_results: {
+        Row: {
+          action_plan: string | null
+          created_at: string
+          id: string
+          user_id: string
+          video_url: string
+        }
+        Insert: {
+          action_plan?: string | null
+          created_at?: string
+          id?: string
+          user_id: string
+          video_url: string
+        }
+        Update: {
+          action_plan?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string
+          video_url?: string
         }
         Relationships: []
       }
