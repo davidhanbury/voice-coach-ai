@@ -110,7 +110,8 @@ serve(async (req) => {
     }
 
     try {
-      const veedResponse = await fetch('https://fal.run/veed/fabric-1.0', {
+      // Step 3a: Create video generation task in fal queue
+      const queueResponse = await fetch('https://queue.fal.run/veed/fabric-1.0', {
         method: 'POST',
         headers: {
           'Authorization': `Key ${FAL_API_KEY}`,
@@ -123,15 +124,15 @@ serve(async (req) => {
         }),
       });
 
-      if (!veedResponse.ok) {
-        const errorText = await veedResponse.text();
-        console.error('fal.ai API error:', veedResponse.status, errorText);
+      if (!queueResponse.ok) {
+        const errorText = await queueResponse.text();
+        console.error('fal.ai queue API error:', queueResponse.status, errorText);
         
         return new Response(JSON.stringify({ 
           success: false,
           error: 'fal_api_error',
-          message: 'Failed to generate video with fal.ai',
-          statusCode: veedResponse.status,
+          message: 'Failed to enqueue video generation with fal.ai',
+          statusCode: queueResponse.status,
           details: errorText,
           audioUrl: audioUrl
         }), {
@@ -140,31 +141,108 @@ serve(async (req) => {
         });
       }
 
-      const veedData = await veedResponse.json();
-      
-      console.log('fal.ai VEED Fabric response:', JSON.stringify(veedData, null, 2));
+      const queueData = await queueResponse.json();
+      console.log('fal.ai queue response:', JSON.stringify(queueData, null, 2));
 
-      // Extract video URL from fal.ai response: { video: { url: "..." } }
-      let videoUrl = null;
+      let status: string | undefined = queueData.status;
+      const requestId: string | undefined = queueData.request_id;
+      let responseUrl: string | undefined = queueData.response_url;
+      let statusUrl: string | undefined = queueData.status_url;
+
+      const maxAttempts = 12; // up to ~60s (12 * 5s)
+      const delayMs = 5000;
+      let attempt = 0;
+
+      // Step 3b: Poll status until completed or timeout
+      while (status !== 'COMPLETED' && attempt < maxAttempts && statusUrl) {
+        attempt++;
+        console.log(`Polling fal.ai status (attempt ${attempt})...`);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+        const statusResp = await fetch(statusUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Key ${FAL_API_KEY}`,
+          },
+        });
+
+        if (!statusResp.ok) {
+          const statusError = await statusResp.text();
+          console.error('fal.ai status API error:', statusResp.status, statusError);
+          break;
+        }
+
+        const statusData = await statusResp.json();
+        status = statusData.status || status;
+        responseUrl = statusData.response_url || responseUrl;
+        statusUrl = statusData.status_url || statusUrl;
+        console.log('fal.ai status update:', status);
+      }
+
+      if (status !== 'COMPLETED' || !responseUrl) {
+        console.error('fal.ai generation did not complete in time or missing response_url');
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: 'generation_timeout',
+          message: 'Video generation did not complete in time',
+          audioUrl: audioUrl,
+          requestId,
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Step 3c: Fetch final video output from response_url
+      const outputResp = await fetch(responseUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Key ${FAL_API_KEY}`,
+        },
+      });
+
+      if (!outputResp.ok) {
+        const outputError = await outputResp.text();
+        console.error('fal.ai output API error:', outputResp.status, outputError);
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: 'fal_api_error',
+          message: 'Failed to retrieve video output from fal.ai',
+          statusCode: outputResp.status,
+          details: outputError,
+          audioUrl: audioUrl,
+          requestId,
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const outputData = await outputResp.json();
+      console.log('fal.ai VEED Fabric output:', JSON.stringify(outputData, null, 2));
+
+      // Extract video URL from output: { video: { url: "..." } }
+      let videoUrl: string | null = null;
       
-      if (veedData.video && typeof veedData.video === 'object' && veedData.video.url) {
-        videoUrl = veedData.video.url;
-      } else if (veedData.video_url) {
-        videoUrl = veedData.video_url;
-      } else if (veedData.url) {
-        videoUrl = veedData.url;
+      if (outputData.video && typeof outputData.video === 'object' && outputData.video.url) {
+        videoUrl = outputData.video.url;
+      } else if (outputData.video_url) {
+        videoUrl = outputData.video_url;
+      } else if (outputData.url) {
+        videoUrl = outputData.url;
       }
 
       console.log('Extracted video URL:', videoUrl);
 
       if (!videoUrl) {
-        console.error('No video URL found in response:', veedData);
+        console.error('No video URL found in fal.ai output:', outputData);
         return new Response(JSON.stringify({ 
           success: false,
           error: 'no_video_url',
           message: 'Video generation completed but no URL was returned',
-          rawResponse: veedData,
-          audioUrl: audioUrl
+          rawResponse: outputData,
+          audioUrl: audioUrl,
+          requestId,
         }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -174,7 +252,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         videoUrl: videoUrl,
         audioUrl: audioUrl,
-        requestId: veedData.request_id,
+        requestId,
         success: true
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
