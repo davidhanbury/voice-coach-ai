@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,74 +8,151 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
     const { script, imageUrl } = await req.json();
     
-    if (!script) {
-      throw new Error('Script is required');
+    if (!script || !imageUrl) {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'missing_parameters',
+        message: 'Script and image URL are required' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    if (!imageUrl) {
-      throw new Error('Image URL is required');
+    const VEED_API_KEY = Deno.env.get('VEED_API_KEY');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!VEED_API_KEY || !OPENAI_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('Required API keys not configured');
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'api_key_missing',
+        message: 'Video generation API keys not configured' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const FAL_API_KEY = Deno.env.get('FAL_API_KEY');
-    if (!FAL_API_KEY) {
-      throw new Error('FAL_API_KEY not configured');
+    console.log('Step 1: Converting text to audio...');
+    console.log('Script length:', script.length);
+
+    // Step 1: Convert text to audio using OpenAI TTS
+    const ttsResponse = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'tts-1',
+        input: script,
+        voice: 'alloy',
+        response_format: 'mp3',
+      }),
+    });
+
+    if (!ttsResponse.ok) {
+      const error = await ttsResponse.text();
+      console.error('TTS error:', error);
+      throw new Error('Failed to convert text to audio');
     }
 
-    console.log('Generating video with fal.ai');
+    const audioArrayBuffer = await ttsResponse.arrayBuffer();
+    const audioBlob = new Uint8Array(audioArrayBuffer);
+    
+    console.log('Audio generated, size:', audioBlob.length, 'bytes');
 
+    // Step 2: Upload audio to Supabase storage
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const audioFileName = `${Date.now()}-audio.mp3`;
+    
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('therapist-images')
+      .upload(audioFileName, audioBlob, {
+        contentType: 'audio/mpeg',
+        cacheControl: '3600'
+      });
+
+    if (uploadError) {
+      console.error('Audio upload error:', uploadError);
+      throw new Error('Failed to upload audio file');
+    }
+
+    const { data: { publicUrl: audioUrl } } = supabase.storage
+      .from('therapist-images')
+      .getPublicUrl(audioFileName);
+
+    console.log('Audio uploaded to:', audioUrl);
+    console.log('Step 3: Calling VEED Fabric API...');
+
+    // Step 3: Call VEED Fabric API with image and audio
     try {
-      // Use fal.ai's AI Avatar API with correct format
-      const response = await fetch('https://fal.run/fal-ai/ai-avatar/single-text', {
+      const veedResponse = await fetch('https://api.veed.io/v1/renders', {
         method: 'POST',
         headers: {
-          'Authorization': `Key ${FAL_API_KEY}`,
+          'Authorization': `Bearer ${VEED_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           image_url: imageUrl,
-          text_input: script,
-          voice: "Bill", // Available voices: Bill, Daniel, Emma, etc.
-          prompt: "A professional coach speaking warmly and encouragingly to the camera, making eye contact and gesturing naturally to emphasize key points about goal achievement and personal growth."
+          audio_url: audioUrl,
+          width: 1920,
+          height: 1080,
+          output_format: 'mp4'
         }),
       });
 
-      if (!response.ok) {
-        const error = await response.text();
-        console.error('fal.ai API error:', error);
-        throw new Error(`fal.ai API returned ${response.status}`);
+      if (!veedResponse.ok) {
+        const errorText = await veedResponse.text();
+        console.error('VEED API error:', veedResponse.status, errorText);
+        
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: 'veed_api_error',
+          message: 'Failed to generate video with VEED',
+          statusCode: veedResponse.status,
+          details: errorText,
+          audioUrl: audioUrl  // Return audio URL so user can use it manually
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
 
-      const data = await response.json();
+      const veedData = await veedResponse.json();
       
-      console.log('Video generation response from fal.ai:', JSON.stringify(data, null, 2));
+      console.log('VEED API response:', JSON.stringify(veedData, null, 2));
 
-      // Extract video URL from fal.ai response
-      // fal.ai typically returns: { video: { url: "..." } } or { video_url: "..." }
+      // Extract video URL from VEED response
       let videoUrl = null;
       
-      if (data.video && typeof data.video === 'object' && data.video.url) {
-        videoUrl = data.video.url;
-      } else if (data.video_url) {
-        videoUrl = data.video_url;
-      } else if (typeof data.video === 'string') {
-        videoUrl = data.video;
+      if (veedData.render_url) {
+        videoUrl = veedData.render_url;
+      } else if (veedData.video_url) {
+        videoUrl = veedData.video_url;
+      } else if (veedData.url) {
+        videoUrl = veedData.url;
       }
 
       console.log('Extracted video URL:', videoUrl);
 
       if (!videoUrl) {
-        console.error('No video URL found in response:', data);
+        console.error('No video URL found in VEED response:', veedData);
         return new Response(JSON.stringify({ 
           success: false,
           error: 'no_video_url',
-          message: 'Video was generated but no URL was returned',
-          rawResponse: data
+          message: 'Video generation completed but no URL was returned',
+          rawResponse: veedData,
+          audioUrl: audioUrl
         }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -83,31 +161,31 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({ 
         videoUrl: videoUrl,
-        requestId: data.request_id,
+        audioUrl: audioUrl,
+        renderId: veedData.render_id || veedData.id,
         success: true
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } catch (fetchError) {
-      // Handle HTTP/2 connection errors and other transport issues
-      const errorMessage = fetchError instanceof Error ? fetchError.message : 'Unknown error';
-      console.error('fal.ai connection error:', errorMessage);
-      
-      // Return a graceful error response instead of throwing
+      console.error('Network error calling VEED API:', fetchError);
       return new Response(JSON.stringify({ 
         success: false,
         error: 'connection_failed',
-        message: 'Unable to connect to video generation service. Please use the downloaded script and image with VEED or fal.ai directly.',
-        details: errorMessage
+        message: 'Could not connect to VEED video generation service',
+        details: fetchError instanceof Error ? fetchError.message : 'Unknown error',
+        audioUrl: audioUrl
       }), {
-        status: 200, // Return 200 so client can handle gracefully
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
   } catch (error) {
-    console.error('Error in generate-video:', error);
+    console.error('Error in generate-video function:', error);
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      success: false,
+      error: 'server_error',
+      message: error instanceof Error ? error.message : 'Unknown error occurred' 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
