@@ -25,12 +25,11 @@ serve(async (req) => {
       });
     }
 
-    const VEED_API_KEY = Deno.env.get('VEED_API_KEY');
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!VEED_API_KEY || !OPENAI_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    if (!OPENAI_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       console.error('Required API keys not configured');
       return new Response(JSON.stringify({ 
         success: false,
@@ -92,36 +91,49 @@ serve(async (req) => {
       .getPublicUrl(audioFileName);
 
     console.log('Audio uploaded to:', audioUrl);
-    console.log('Step 3: Calling VEED Fabric API...');
+    console.log('Step 3: Calling fal.ai VEED Fabric 1.0 API...');
 
-    // Step 3: Call VEED Fabric API with image and audio
+    // Step 3: Call fal.ai VEED Fabric API with image and audio
+    const FAL_API_KEY = Deno.env.get('FAL_API_KEY');
+    
+    if (!FAL_API_KEY) {
+      console.error('FAL_API_KEY not configured');
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'api_key_missing',
+        message: 'FAL API key not configured',
+        audioUrl: audioUrl
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     try {
-      const veedResponse = await fetch('https://api.veed.io/v1/renders', {
+      const veedResponse = await fetch('https://fal.run/veed/fabric-1.0', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${VEED_API_KEY}`,
+          'Authorization': `Key ${FAL_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           image_url: imageUrl,
           audio_url: audioUrl,
-          width: 1920,
-          height: 1080,
-          output_format: 'mp4'
+          resolution: '720p'
         }),
       });
 
       if (!veedResponse.ok) {
         const errorText = await veedResponse.text();
-        console.error('VEED API error:', veedResponse.status, errorText);
+        console.error('fal.ai API error:', veedResponse.status, errorText);
         
         return new Response(JSON.stringify({ 
           success: false,
-          error: 'veed_api_error',
-          message: 'Failed to generate video with VEED',
+          error: 'fal_api_error',
+          message: 'Failed to generate video with fal.ai',
           statusCode: veedResponse.status,
           details: errorText,
-          audioUrl: audioUrl  // Return audio URL so user can use it manually
+          audioUrl: audioUrl
         }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -130,13 +142,13 @@ serve(async (req) => {
 
       const veedData = await veedResponse.json();
       
-      console.log('VEED API response:', JSON.stringify(veedData, null, 2));
+      console.log('fal.ai VEED Fabric response:', JSON.stringify(veedData, null, 2));
 
-      // Extract video URL from VEED response
+      // Extract video URL from fal.ai response: { video: { url: "..." } }
       let videoUrl = null;
       
-      if (veedData.render_url) {
-        videoUrl = veedData.render_url;
+      if (veedData.video && typeof veedData.video === 'object' && veedData.video.url) {
+        videoUrl = veedData.video.url;
       } else if (veedData.video_url) {
         videoUrl = veedData.video_url;
       } else if (veedData.url) {
@@ -146,7 +158,7 @@ serve(async (req) => {
       console.log('Extracted video URL:', videoUrl);
 
       if (!videoUrl) {
-        console.error('No video URL found in VEED response:', veedData);
+        console.error('No video URL found in response:', veedData);
         return new Response(JSON.stringify({ 
           success: false,
           error: 'no_video_url',
@@ -162,17 +174,17 @@ serve(async (req) => {
       return new Response(JSON.stringify({ 
         videoUrl: videoUrl,
         audioUrl: audioUrl,
-        renderId: veedData.render_id || veedData.id,
+        requestId: veedData.request_id,
         success: true
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } catch (fetchError) {
-      console.error('Network error calling VEED API:', fetchError);
+      console.error('Network error calling fal.ai:', fetchError);
       return new Response(JSON.stringify({ 
         success: false,
         error: 'connection_failed',
-        message: 'Could not connect to VEED video generation service',
+        message: 'Could not connect to fal.ai video generation service',
         details: fetchError instanceof Error ? fetchError.message : 'Unknown error',
         audioUrl: audioUrl
       }), {

@@ -291,7 +291,7 @@ const Results = () => {
               </p>
               <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
                 <li>Converting action plan to audio using OpenAI TTS</li>
-                <li>Creating video with VEED Fabric API (image + audio)</li>
+                <li>Creating video with fal.ai VEED Fabric 1.0 (image + audio)</li>
               </ol>
               <p className="text-sm text-muted-foreground mt-2">
                 This may take 1-2 minutes to complete.
