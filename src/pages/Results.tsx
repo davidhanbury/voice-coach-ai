@@ -287,14 +287,15 @@ const Results = () => {
             
             <div className="p-4 bg-muted/50 rounded-lg border">
               <p className="text-sm text-muted-foreground mb-2">
-                <strong>Manual Alternative:</strong> If automatic generation fails:
+                <strong>Process:</strong> Your video is generated in two steps:
               </p>
               <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
-                <li>Visit <a href="https://fal.ai/models/fal-ai/ai-avatar" target="_blank" rel="noopener" className="text-primary underline">fal.ai/ai-avatar</a> or <a href="https://www.veed.io" target="_blank" rel="noopener" className="text-primary underline">VEED.io</a></li>
-                <li>Upload the coach image from Step 1</li>
-                <li>Paste the action plan text from Step 2</li>
-                <li>Generate your personalized video</li>
+                <li>Converting action plan to audio using OpenAI TTS</li>
+                <li>Creating video with VEED Fabric API (image + audio)</li>
               </ol>
+              <p className="text-sm text-muted-foreground mt-2">
+                This may take 1-2 minutes to complete.
+              </p>
             </div>
           </div>
           
