@@ -2,12 +2,14 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Target, Calendar, CheckCircle2 } from "lucide-react";
 import heroBackground from "@/assets/hero-background.webp";
+import BottomNav from "@/components/BottomNav";
 
 const Hero = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <>
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pb-24">
       {/* Background Image with Overlay */}
       <div 
         className="absolute inset-0 bg-cover bg-center"
@@ -95,6 +97,8 @@ const Hero = () => {
         </div>
       </div>
     </section>
+    <BottomNav />
+    </>
   );
 };
 

@@ -1,4 +1,5 @@
 import TurnBasedVoiceChat from "@/components/TurnBasedVoiceChat";
+import BottomNav from "@/components/BottomNav";
 
 const Interview = () => {
   const handleTranscriptComplete = (transcript: string[]) => {
@@ -7,7 +8,7 @@ const Interview = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 py-12 px-4 pb-24">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12 animate-in fade-in slide-in-from-top duration-700">
@@ -26,6 +27,8 @@ const Interview = () => {
           />
         </div>
       </div>
+      
+      <BottomNav />
     </div>
   );
 };
