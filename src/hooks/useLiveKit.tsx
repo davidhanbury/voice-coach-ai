@@ -28,7 +28,7 @@ export const useLiveKit = (): LiveKitConnection => {
 
       console.log('Getting LiveKit token for room:', roomName);
 
-      // Get LiveKit token from edge function
+      // Get LiveKit token from edge function (public endpoint, no auth required)
       const { data, error: tokenError } = await supabase.functions.invoke('livekit-token', {
         body: { roomName }
       });
