@@ -97,17 +97,27 @@ const Results = () => {
           console.error('Error creating goal:', goalError);
           throw new Error('Failed to create goal');
         } else if (goalRecord) {
-          // Create daily tasks linked to this goal
-          const dailyGoals = data.dailyTasks.map((task: string) => ({
-            goal_id: goalRecord.id,
-            task,
-            date: today,
-            completed: false
-          }));
+          // Create daily tasks for the next 7 days
+          const dailyGoalsForWeek = [];
+          
+          for (let i = 0; i < 7; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() + i);
+            const dateString = date.toISOString().split('T')[0];
+            
+            data.dailyTasks.forEach((task: string) => {
+              dailyGoalsForWeek.push({
+                goal_id: goalRecord.id,
+                task,
+                date: dateString,
+                completed: false
+              });
+            });
+          }
 
           const { error: dailyError } = await supabase
             .from('daily_goals')
-            .insert(dailyGoals);
+            .insert(dailyGoalsForWeek);
 
           if (dailyError) {
             console.error('Error creating daily goals:', dailyError);
@@ -116,7 +126,7 @@ const Results = () => {
           
           toast({
             title: "Goals Created!",
-            description: "Your daily goals are ready to view.",
+            description: "Your goals are set for the next 7 days.",
           });
         }
       } else {
