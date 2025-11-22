@@ -53,6 +53,8 @@ const Today = () => {
 
   const generateGoalsFromTranscript = async (transcript: string[]) => {
     setIsGenerating(true);
+    let videoGenerated = false;
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -68,25 +70,30 @@ const Today = () => {
       if (planError) throw planError;
       const actionPlan = actionPlanData.actionPlan;
 
-      // Generate video with placeholder image
-      const placeholderImage = "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&h=400&fit=crop";
-      
-      const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
-        body: { 
-          script: actionPlan,
-          imageUrl: placeholderImage
-        }
-      });
-
-      if (!videoError && videoData?.success && videoData?.videoUrl) {
-        setVideoUrl(videoData.videoUrl);
+      // Try to generate video (don't fail if this doesn't work)
+      try {
+        const placeholderImage = "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=400&h=400&fit=crop";
         
-        // Save to database
-        await supabase.from('video_results').insert({
-          user_id: user.id,
-          video_url: videoData.videoUrl,
-          action_plan: actionPlan
+        const { data: videoData, error: videoError } = await supabase.functions.invoke('generate-video', {
+          body: { 
+            script: actionPlan,
+            imageUrl: placeholderImage
+          }
         });
+
+        if (!videoError && videoData?.success && videoData?.videoUrl) {
+          setVideoUrl(videoData.videoUrl);
+          videoGenerated = true;
+          
+          // Save to database
+          await supabase.from('video_results').insert({
+            user_id: user.id,
+            video_url: videoData.videoUrl,
+            action_plan: actionPlan
+          });
+        }
+      } catch (videoError) {
+        console.error('Video generation failed, continuing with goals:', videoError);
       }
 
       // Parse action plan into goals
@@ -123,7 +130,9 @@ const Today = () => {
       
       toast({
         title: "Goals Created!",
-        description: "Your personalized goals are ready",
+        description: videoGenerated 
+          ? "Your goals and video are ready" 
+          : "Your goals are ready (video generation pending)",
       });
     } catch (error) {
       console.error('Error generating goals:', error);
