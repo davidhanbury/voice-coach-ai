@@ -45,7 +45,7 @@ serve(async (req) => {
     console.log('Original script length:', script.length);
 
     // To comply with fal.ai Fabric 1.0 max 60s audio limit, truncate script for TTS if needed
-    const MAX_TTS_SCRIPT_LENGTH = 900;
+    const MAX_TTS_SCRIPT_LENGTH = 600;
     let ttsScript = script;
     if (ttsScript.length > MAX_TTS_SCRIPT_LENGTH) {
       console.log(
@@ -160,12 +160,20 @@ serve(async (req) => {
       let responseUrl: string | undefined = queueData.response_url;
       let statusUrl: string | undefined = queueData.status_url;
 
-      const maxAttempts = 12; // up to ~60s (12 * 5s)
+      const maxAttempts = 18; // up to ~90s (18 * 5s)
       const delayMs = 5000;
       let attempt = 0;
+      let lastStatusData: any = null;
 
-      // Step 3b: Poll status until completed or timeout
-      while (status !== 'COMPLETED' && attempt < maxAttempts && statusUrl) {
+      // Step 3b: Poll status until completed, failed, or timeout
+      while (
+        status !== 'COMPLETED' &&
+        status !== 'FAILED' &&
+        status !== 'ERROR' &&
+        status !== 'CANCELLED' &&
+        attempt < maxAttempts &&
+        statusUrl
+      ) {
         attempt++;
         console.log(`Polling fal.ai status (attempt ${attempt})...`);
         await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -184,20 +192,39 @@ serve(async (req) => {
         }
 
         const statusData = await statusResp.json();
+        lastStatusData = statusData;
         status = statusData.status || status;
         responseUrl = statusData.response_url || responseUrl;
         statusUrl = statusData.status_url || statusUrl;
         console.log('fal.ai status update:', status);
       }
 
+      if (status === 'FAILED' || status === 'ERROR' || status === 'CANCELLED') {
+        console.error('fal.ai generation failed with status:', status, 'data:', lastStatusData);
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'fal_api_error',
+          message: `Video generation failed with status ${status}`,
+          status,
+          details: lastStatusData,
+          audioUrl: audioUrl,
+          requestId,
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       if (status !== 'COMPLETED' || !responseUrl) {
-        console.error('fal.ai generation did not complete in time or missing response_url');
+        console.error('fal.ai generation did not complete in time or missing response_url. Final status:', status);
         return new Response(JSON.stringify({ 
           success: false,
           error: 'generation_timeout',
           message: 'Video generation did not complete in time',
           audioUrl: audioUrl,
           requestId,
+          status,
+          lastStatus: lastStatusData,
         }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
