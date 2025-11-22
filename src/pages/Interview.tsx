@@ -1,9 +1,6 @@
-import OpenAIVoiceInterface from "@/components/OpenAIVoiceInterface";
+import TurnBasedVoiceChat from "@/components/TurnBasedVoiceChat";
 
 const Interview = () => {
-  // Generate unique session name
-  const sessionName = `interview-${Date.now()}`;
-
   const handleTranscriptComplete = (transcript: string[]) => {
     console.log('Session transcript:', transcript);
     // Transcript is passed to results page via navigation state
@@ -18,14 +15,13 @@ const Interview = () => {
             Voice Interview Session
           </h1>
           <p className="text-lg text-muted-foreground">
-            Take your time. Share what's on your mind, and I'll help create a plan that works for you.
+            Click Record to speak, then stop when done. The AI will respond after each turn.
           </p>
         </div>
 
-        {/* OpenAI Voice Interface */}
+        {/* Turn-Based Voice Chat */}
         <div className="animate-in fade-in zoom-in duration-700 delay-200">
-          <OpenAIVoiceInterface 
-            roomName={sessionName} 
+          <TurnBasedVoiceChat 
             onTranscriptComplete={handleTranscriptComplete}
           />
         </div>

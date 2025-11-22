@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.openai-realtime]
 verify_jwt = false
+
+[functions.voice-to-text]
+verify_jwt = false
+
+[functions.text-to-voice]
+verify_jwt = false
+
+[functions.therapy-chat]
+verify_jwt = false
