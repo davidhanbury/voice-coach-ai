@@ -72,7 +72,7 @@ const CalendarNew = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        navigate('/');
+        setLoading(false);
         return;
       }
 
