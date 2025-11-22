@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar as CalendarIcon, CheckCircle2, Trophy, Flame, Award, Loader2, Edit2, Check, X } from "lucide-react";
+import { CheckCircle2, Trophy, Flame, Award, Loader2, Edit2, Check, X } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import confetti from "canvas-confetti";
 
@@ -474,25 +474,14 @@ const Today = () => {
         )}
         
         {/* Header */}
-        <div className="flex items-center justify-between py-6">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Goals</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {new Date().toLocaleDateString('en-US', { 
-                month: 'short',
-                day: 'numeric'
-              })}
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/calendar')}
-            className="gap-2 shadow-sm"
-          >
-            <CalendarIcon className="h-4 w-4" />
-            Calendar
-          </Button>
+        <div className="py-6">
+          <h1 className="text-3xl font-bold text-foreground">Goals</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {new Date().toLocaleDateString('en-US', { 
+              month: 'short',
+              day: 'numeric'
+            })}
+          </p>
         </div>
 
         {/* Progress Stats */}
