@@ -19,6 +19,7 @@ const Results = () => {
   const [imagePreview, setImagePreview] = useState<string>("");
   const [actionPlan, setActionPlan] = useState<string>("");
   const [videoUrl, setVideoUrl] = useState<string>("");
+  const [audioUrl, setAudioUrl] = useState<string>("");
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
@@ -141,6 +142,9 @@ const Results = () => {
       // Check if video generation was successful
       if (data.success && data.videoUrl) {
         setVideoUrl(data.videoUrl);
+        if (data.audioUrl) {
+          setAudioUrl(data.audioUrl);
+        }
         
         // Save video to database
         const { data: { user } } = await supabase.auth.getUser();
@@ -161,15 +165,30 @@ const Results = () => {
         setTimeout(() => {
           navigate('/today', { state: { videoUrl: data.videoUrl } });
         }, 2000);
-      } else if (data.success === false && data.error === 'connection_failed') {
-        // Handle connection errors gracefully
+      } else if (data && data.success === false) {
+        console.error('Video generation error data:', data);
+        if (data.audioUrl) {
+          setAudioUrl(data.audioUrl);
+        }
+
+        let description = data.message || 'Automatic generation is unavailable. Use the script and audio below with fal.ai or VEED to create your video manually.';
+        
+        if (data.error === 'connection_failed') {
+          description = 'The video service is temporarily unavailable. You can still use the script and audio below to create your video manually.';
+        } else if (data.error === 'generation_timeout') {
+          description = 'Video generation took too long and timed out. Please try again later, or use the script and audio below manually.';
+        }
+
         toast({
           title: "Automatic Generation Unavailable",
-          description: "Use the script and image below with VEED or fal.ai to create your video manually.",
+          description,
           variant: "default"
         });
+        
+        // Do not throw here so we avoid the generic failure toast
+        return;
       } else {
-        throw new Error(data.message || 'Video generation failed');
+        throw new Error(data?.message || 'Video generation failed');
       }
     } catch (error) {
       console.error('Error generating video:', error);
@@ -296,6 +315,23 @@ const Results = () => {
               <p className="text-sm text-muted-foreground mt-2">
                 This may take 1-2 minutes to complete.
               </p>
+
+              {audioUrl && (
+                <div className="mt-3 p-3 rounded-md border border-dashed bg-muted/60">
+                  <p className="text-sm text-muted-foreground mb-1">
+                    We successfully generated your audio. You can open it and use it directly in fal.ai or VEED:
+                  </p>
+                  <a
+                    href={audioUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-primary underline"
+                  >
+                    <Play className="h-4 w-4" />
+                    Open audio in new tab
+                  </a>
+                </div>
+              )}
             </div>
           </div>
           
