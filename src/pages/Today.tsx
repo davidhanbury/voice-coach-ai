@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar as CalendarIcon, CheckCircle2, Trophy, Flame, Award, Play } from "lucide-react";
+import { Calendar as CalendarIcon, CheckCircle2, Trophy, Flame, Award, Play, Trash2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import confetti from "canvas-confetti";
 
@@ -133,6 +133,31 @@ const Today = () => {
       toast({
         title: "Error",
         description: "Failed to update goal",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteGoal = async (goalId: string) => {
+    try {
+      const { error } = await supabase
+        .from('daily_goals')
+        .delete()
+        .eq('id', goalId);
+
+      if (error) throw error;
+
+      setDailyGoals(prev => prev.filter(g => g.id !== goalId));
+      
+      toast({
+        title: "Deleted",
+        description: "Goal removed successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting goal:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete goal",
         variant: "destructive"
       });
     }
@@ -454,6 +479,14 @@ const Today = () => {
                           {goal.goal_title}
                         </p>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteGoal(goal.id)}
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
