@@ -1,0 +1,13 @@
+# LiveKit Agent Dependencies
+
+# Core LiveKit Agents framework
+livekit-agents>=0.8.0
+
+# OpenAI plugin for LiveKit (includes Whisper STT, GPT, and TTS)
+livekit-plugins-openai>=0.6.0
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# Optional: For enhanced logging
+coloredlogs>=15.0.1
