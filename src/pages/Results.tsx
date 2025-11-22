@@ -120,22 +120,33 @@ const Results = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
 
-      if (data.videoUrl) {
+      // Check if video generation was successful
+      if (data.success && data.videoUrl) {
         setVideoUrl(data.videoUrl);
         toast({
           title: "Video Generated!",
           description: "Your personalized video is ready"
         });
+      } else if (data.success === false && data.error === 'connection_failed') {
+        // Handle connection errors gracefully
+        toast({
+          title: "Automatic Generation Unavailable",
+          description: "Use the script and image below with VEED or fal.ai to create your video manually.",
+          variant: "default"
+        });
       } else {
-        throw new Error('No video URL returned');
+        throw new Error(data.message || 'Video generation failed');
       }
     } catch (error) {
       console.error('Error generating video:', error);
       toast({
-        title: "Error",
-        description: "Failed to generate video. Please check your API key.",
+        title: "Video Generation Failed",
+        description: "Download the script below and use it with VEED or fal.ai to create your video.",
         variant: "destructive"
       });
     } finally {
@@ -236,13 +247,27 @@ const Results = () => {
         {/* Step 3: Generate Video */}
         <Card className="p-6 mb-6">
           <h2 className="text-2xl font-semibold mb-4">Step 3: Generate Video</h2>
-          <Button 
-            onClick={generateVideo}
-            disabled={isGeneratingVideo || !actionPlan || !therapistImage}
-            size="lg"
-          >
-            {isGeneratingVideo ? "Generating Video..." : "Generate Video"}
-          </Button>
+          <div className="space-y-4">
+            <Button 
+              onClick={generateVideo}
+              disabled={isGeneratingVideo || !actionPlan || !therapistImage}
+              size="lg"
+            >
+              {isGeneratingVideo ? "Generating Video..." : "Try Automatic Generation"}
+            </Button>
+            
+            <div className="p-4 bg-muted/50 rounded-lg border">
+              <p className="text-sm text-muted-foreground mb-2">
+                <strong>Manual Alternative:</strong> If automatic generation fails:
+              </p>
+              <ol className="text-sm text-muted-foreground list-decimal list-inside space-y-1">
+                <li>Visit <a href="https://fal.ai/models/fal-ai/ai-avatar" target="_blank" rel="noopener" className="text-primary underline">fal.ai/ai-avatar</a> or <a href="https://www.veed.io" target="_blank" rel="noopener" className="text-primary underline">VEED.io</a></li>
+                <li>Upload the coach image from Step 1</li>
+                <li>Paste the action plan text from Step 2</li>
+                <li>Generate your personalized video</li>
+              </ol>
+            </div>
+          </div>
           
           {videoUrl && (
             <div className="mt-6">
