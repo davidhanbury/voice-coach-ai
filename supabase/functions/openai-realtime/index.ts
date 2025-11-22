@@ -48,7 +48,7 @@ serve(async (req) => {
 
         openaiSocket.onmessage = (event: MessageEvent) => {
           const data = JSON.parse(event.data as string);
-          console.log("OpenAI -> Client:", data.type);
+          console.log("OpenAI -> Client:", data.type, JSON.stringify(data).substring(0, 200));
 
           // Configure session after connection
           if (data.type === 'session.created' && !sessionConfigured) {
@@ -76,7 +76,7 @@ Keep your responses conversational and natural, as if speaking to someone in per
                   type: 'server_vad',
                   threshold: 0.5,
                   prefix_padding_ms: 300,
-                  silence_duration_ms: 1000
+                  silence_duration_ms: 500
                 },
                 temperature: 0.8,
                 max_response_output_tokens: 4096
@@ -85,6 +85,19 @@ Keep your responses conversational and natural, as if speaking to someone in per
             
             console.log("Configuring session...");
             openaiSocket?.send(JSON.stringify(sessionUpdate));
+          }
+
+          // Send initial greeting after session is updated
+          if (data.type === 'session.updated' && sessionConfigured) {
+            console.log("Session configured, sending greeting...");
+            const greeting = {
+              type: 'response.create',
+              response: {
+                modalities: ['text', 'audio'],
+                instructions: "Greet the user warmly and ask them how they're feeling today. Keep it brief and natural."
+              }
+            };
+            openaiSocket?.send(JSON.stringify(greeting));
           }
 
           if (clientSocket.readyState === WebSocket.OPEN) {
