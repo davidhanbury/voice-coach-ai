@@ -12,10 +12,10 @@ const Interview = () => {
         {/* Header */}
         <div className="text-center mb-12 animate-in fade-in slide-in-from-top duration-700">
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Voice Interview Session
+            Goal Setting Session
           </h1>
           <p className="text-lg text-muted-foreground">
-            Click Record to speak, then stop when done. The AI will respond after each turn.
+            Let's use the GROW framework to set and achieve your goals. Click Record to speak, then stop when done.
           </p>
         </div>
 
