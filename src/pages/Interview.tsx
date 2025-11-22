@@ -16,7 +16,7 @@ const Interview = () => {
             Goal Setting Session
           </h1>
           <p className="text-lg text-muted-foreground">
-            Let's use the GROW framework to set and achieve your goals. Click Record to speak, then stop when done.
+            Let's chat about your goals. Click Record to speak, then stop when done.
           </p>
         </div>
 
