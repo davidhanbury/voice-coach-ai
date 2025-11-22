@@ -21,8 +21,8 @@ async function generateLiveKitToken(roomName: string, participantName: string): 
 
   try {
     console.log('Importing LiveKit SDK...');
-    // Import AccessToken from LiveKit server SDK
-    const { AccessToken } = await import('https://deno.land/x/livekit_server_sdk@v2.6.1/mod.ts');
+    // Import AccessToken from LiveKit server SDK via esm.sh
+    const { AccessToken } = await import('https://esm.sh/livekit-server-sdk@2.6.1');
 
     console.log('Creating AccessToken...');
     const at = new AccessToken(apiKey, apiSecret, {
@@ -40,7 +40,7 @@ async function generateLiveKitToken(roomName: string, participantName: string): 
     });
 
     console.log('Generating JWT...');
-    return at.toJwt();
+    return await at.toJwt();
   } catch (error) {
     console.error('Error generating LiveKit token:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
