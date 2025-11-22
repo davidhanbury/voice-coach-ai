@@ -332,7 +332,7 @@ const Results = () => {
           
           {actionPlan && (
             <div className="mt-4">
-              <div className="flex justify-between items-center mb-2">
+              <div className="flex justify-between items-center mb-3">
                 <p className="font-semibold">Your Action Plan:</p>
                 <Button 
                   variant="outline" 
@@ -343,9 +343,33 @@ const Results = () => {
                   Download as TXT
                 </Button>
               </div>
-              <div className="p-4 bg-muted rounded-lg whitespace-pre-wrap">
-                {actionPlan}
-              </div>
+              
+              {goalData && (
+                <div className="space-y-4">
+                  {/* Main Goal */}
+                  <Card className="p-4 bg-primary/5">
+                    <h3 className="font-semibold text-lg mb-1">{goalData.mainGoal}</h3>
+                    <p className="text-sm text-muted-foreground">{goalData.description}</p>
+                  </Card>
+                  
+                  {/* Daily Tasks */}
+                  <div>
+                    <h4 className="font-semibold mb-3">Daily Actions:</h4>
+                    <div className="space-y-2">
+                      {goalData.dailyTasks.map((task: string, index: number) => (
+                        <Card key={index} className="p-3">
+                          <div className="flex items-start gap-3">
+                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                              {index + 1}
+                            </div>
+                            <p className="text-sm flex-1">{task}</p>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </Card>
