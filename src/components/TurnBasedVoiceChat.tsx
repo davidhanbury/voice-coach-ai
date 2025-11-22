@@ -157,58 +157,58 @@ const TurnBasedVoiceChat = ({ onTranscriptComplete }: TurnBasedVoiceChatProps) =
   const endSession = () => {
     currentAudio?.pause();
     onTranscriptComplete(transcript);
-    navigate('/', { state: { transcript } });
+    navigate('/results', { state: { transcript } });
     
     toast({
-      title: "Processing...",
-      description: "Creating your personalized goals",
+      title: "Session Ended",
+      description: "Processing your interview...",
     });
   };
 
   return (
-    <Card className="p-6 md:p-8 bg-card/50 backdrop-blur-sm border-border/50 shadow-lg rounded-2xl">
-      <div className="flex flex-col items-center gap-6">
+    <Card className="p-8 bg-card/50 backdrop-blur border-border/50">
+      <div className="flex flex-col items-center gap-8">
         {/* Microphone Icon */}
         <div className={`relative ${isRecording ? 'animate-pulse' : ''}`}>
-          <div className={`w-28 h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg ${
+          <div className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 ${
             isProcessing 
               ? 'bg-muted border-4 border-muted-foreground'
               : isRecording 
-                ? 'bg-primary/20 border-4 border-primary shadow-primary/20' 
+                ? 'bg-primary/20 border-4 border-primary' 
                 : 'bg-muted border-4 border-border'
           }`}>
             {isProcessing ? (
-              <Loader2 className="w-10 h-10 md:w-12 md:h-12 text-muted-foreground animate-spin" />
+              <Loader2 className="w-12 h-12 text-muted-foreground animate-spin" />
             ) : isRecording ? (
-              <Mic className="w-10 h-10 md:w-12 md:h-12 text-primary" />
+              <Mic className="w-12 h-12 text-primary" />
             ) : (
-              <Volume2 className="w-10 h-10 md:w-12 md:h-12 text-muted-foreground" />
+              <Volume2 className="w-12 h-12 text-muted-foreground" />
             )}
           </div>
         </div>
 
         {/* Status Text */}
         <div className="text-center space-y-2">
-          <p className="text-base md:text-lg font-medium text-foreground">
+          <p className="text-lg font-medium text-foreground">
             {isProcessing 
-              ? 'Thinking...' 
+              ? 'Processing...' 
               : isRecording 
                 ? 'Recording - Click Stop when done' 
                 : 'Click Record to respond'
             }
           </p>
           <p className="text-sm text-muted-foreground">
-            {messages.length === 0 ? 'Starting conversation...' : 'Turn-based voice chat'}
+            {messages.length === 0 ? 'Starting conversation...' : 'Turn-based voice conversation'}
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3">
+        <div className="flex gap-4">
           {!isRecording && !isProcessing && (
             <Button 
               onClick={startRecording}
               size="lg"
-              className="min-w-[130px] shadow-md"
+              className="min-w-[140px]"
             >
               <Mic className="mr-2 h-4 w-4" />
               Record
@@ -220,7 +220,7 @@ const TurnBasedVoiceChat = ({ onTranscriptComplete }: TurnBasedVoiceChatProps) =
               onClick={stopRecording}
               variant="destructive"
               size="lg"
-              className="min-w-[130px] shadow-md"
+              className="min-w-[140px]"
             >
               Stop Recording
             </Button>
@@ -231,7 +231,6 @@ const TurnBasedVoiceChat = ({ onTranscriptComplete }: TurnBasedVoiceChatProps) =
               onClick={endSession}
               variant="outline"
               size="lg"
-              className="shadow-md"
             >
               End Session
             </Button>
@@ -240,11 +239,11 @@ const TurnBasedVoiceChat = ({ onTranscriptComplete }: TurnBasedVoiceChatProps) =
 
         {/* Transcript Preview */}
         {transcript.length > 0 && (
-          <div className="w-full mt-6 p-4 bg-muted/30 rounded-xl max-h-44 overflow-y-auto shadow-sm">
+          <div className="w-full mt-8 p-4 bg-muted/50 rounded-lg max-h-48 overflow-y-auto">
             <p className="text-sm font-medium text-foreground mb-2">Conversation:</p>
             <div className="space-y-1 text-sm text-muted-foreground">
               {transcript.slice(-5).map((line, i) => (
-                <p key={i} className={line.startsWith('User:') ? 'text-primary font-medium' : ''}>{line}</p>
+                <p key={i} className={line.startsWith('User:') ? 'text-primary' : ''}>{line}</p>
               ))}
             </div>
           </div>

@@ -8,15 +8,15 @@ const Interview = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/20 py-8 px-4 pb-24">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 py-12 px-4 pb-24">
+      <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8 animate-in fade-in slide-in-from-top duration-700">
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-            Let's Chat
+        <div className="text-center mb-12 animate-in fade-in slide-in-from-top duration-700">
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+            Goal Setting Session
           </h1>
-          <p className="text-base text-muted-foreground">
-            Tell me about your goals. Click Record to speak, then stop when done.
+          <p className="text-lg text-muted-foreground">
+            Let's chat about your goals. Click Record to speak, then stop when done.
           </p>
         </div>
 
