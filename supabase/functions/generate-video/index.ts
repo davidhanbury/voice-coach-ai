@@ -28,8 +28,8 @@ serve(async (req) => {
 
     console.log('Generating video with fal.ai');
 
-    // Use fal.ai's talking avatar API
-    const response = await fetch('https://fal.run/fal-ai/hedra/talking-avatar', {
+    // Use fal.ai's AI Avatar API
+    const response = await fetch('https://fal.run/fal-ai/ai-avatar/single-text', {
       method: 'POST',
       headers: {
         'Authorization': `Key ${FAL_API_KEY}`,
@@ -38,7 +38,6 @@ serve(async (req) => {
       body: JSON.stringify({
         image_url: imageUrl,
         text: script,
-        voice: 'en-US-Neural2-F', // Female US English voice
       }),
     });
 
