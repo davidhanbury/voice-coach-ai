@@ -37,10 +37,10 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          image: {
-            url: imageUrl
-          },
-          text: script
+          image_url: imageUrl,
+          text_input: script,
+          voice: "Bill", // Available voices: Bill, Daniel, Emma, etc.
+          prompt: "A professional coach speaking warmly and encouragingly to the camera, making eye contact and gesturing naturally to emphasize key points about goal achievement and personal growth."
         }),
       });
 
