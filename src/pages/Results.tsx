@@ -103,20 +103,32 @@ const Results = () => {
 
     setIsGeneratingVideo(true);
     try {
-      // Convert image to base64
-      const reader = new FileReader();
-      reader.readAsDataURL(therapistImage);
-      
-      await new Promise((resolve) => {
-        reader.onloadend = resolve;
-      });
+      // Upload image to Supabase storage first
+      const fileName = `${Date.now()}-${therapistImage.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('therapist-images')
+        .upload(fileName, therapistImage, {
+          contentType: therapistImage.type,
+          cacheControl: '3600'
+        });
 
-      const imageBase64 = reader.result as string;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error('Failed to upload image');
+      }
 
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('therapist-images')
+        .getPublicUrl(fileName);
+
+      console.log('Image uploaded, public URL:', publicUrl);
+
+      // Call edge function with public URL
       const { data, error } = await supabase.functions.invoke('generate-video', {
         body: { 
           script: actionPlan,
-          imageUrl: imageBase64
+          imageUrl: publicUrl
         }
       });
 

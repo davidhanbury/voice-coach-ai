@@ -29,7 +29,7 @@ serve(async (req) => {
     console.log('Generating video with fal.ai');
 
     try {
-      // Use fal.ai's AI Avatar API
+      // Use fal.ai's AI Avatar API with correct format
       const response = await fetch('https://fal.run/fal-ai/ai-avatar/single-text', {
         method: 'POST',
         headers: {
@@ -37,8 +37,10 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          image_url: imageUrl,
-          text: script,
+          image: {
+            url: imageUrl
+          },
+          text: script
         }),
       });
 
@@ -50,10 +52,10 @@ serve(async (req) => {
 
       const data = await response.json();
       
-      console.log('Video generation successful');
+      console.log('Video generation successful', data);
 
       return new Response(JSON.stringify({ 
-        videoUrl: data.video_url || data.video?.url,
+        videoUrl: data.video?.url || data.video_url,
         requestId: data.request_id,
         success: true
       }), {
