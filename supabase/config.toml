@@ -1,1 +1,4 @@
 project_id = "lbxkcrdzyfidbwulyagu"
+
+[functions.livekit-token]
+verify_jwt = false

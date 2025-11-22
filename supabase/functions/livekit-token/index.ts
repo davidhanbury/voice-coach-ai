@@ -41,27 +41,6 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('No authorization header');
-    }
-
-    // Verify the JWT token
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      throw new Error('Invalid token');
-    }
-
-    console.log('User authenticated:', user.id);
-
     // Get room name from request body
     const { roomName } = await req.json();
     
@@ -69,8 +48,8 @@ serve(async (req) => {
       throw new Error('Room name is required');
     }
 
-    // Generate participant name using user ID
-    const participantName = `user_${user.id}`;
+    // Generate unique participant name (no auth required for MVP)
+    const participantName = `participant_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
     console.log('Generating token for room:', roomName, 'participant:', participantName);
 
