@@ -28,36 +28,53 @@ serve(async (req) => {
 
     console.log('Generating video with fal.ai');
 
-    // Use fal.ai's AI Avatar API
-    const response = await fetch('https://fal.run/fal-ai/ai-avatar/single-text', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${FAL_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        image_url: imageUrl,
-        text: script,
-      }),
-    });
+    try {
+      // Use fal.ai's AI Avatar API
+      const response = await fetch('https://fal.run/fal-ai/ai-avatar/single-text', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Key ${FAL_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          image_url: imageUrl,
+          text: script,
+        }),
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('fal.ai API error:', error);
-      throw new Error(`fal.ai API error: ${response.status}`);
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('fal.ai API error:', error);
+        throw new Error(`fal.ai API returned ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      console.log('Video generation successful');
+
+      return new Response(JSON.stringify({ 
+        videoUrl: data.video_url || data.video?.url,
+        requestId: data.request_id,
+        success: true
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (fetchError) {
+      // Handle HTTP/2 connection errors and other transport issues
+      const errorMessage = fetchError instanceof Error ? fetchError.message : 'Unknown error';
+      console.error('fal.ai connection error:', errorMessage);
+      
+      // Return a graceful error response instead of throwing
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'connection_failed',
+        message: 'Unable to connect to video generation service. Please use the downloaded script and image with VEED or fal.ai directly.',
+        details: errorMessage
+      }), {
+        status: 200, // Return 200 so client can handle gracefully
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-
-    const data = await response.json();
-    
-    console.log('Video generation initiated');
-
-    // fal.ai returns a request ID that we need to poll
-    return new Response(JSON.stringify({ 
-      videoUrl: data.video_url || data.video?.url,
-      requestId: data.request_id 
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
   } catch (error) {
     console.error('Error in generate-video:', error);
     return new Response(JSON.stringify({ 
