@@ -14,7 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      daily_goals: {
+        Row: {
+          completed: boolean
+          created_at: string
+          date: string
+          goal_id: string
+          id: string
+          task: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          date: string
+          goal_id: string
+          id?: string
+          task: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          date?: string
+          goal_id?: string
+          id?: string
+          task?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_goals_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          completed: boolean
+          created_at: string
+          description: string | null
+          id: string
+          obstacles: string[] | null
+          reality: string | null
+          smart_goal: Json
+          timeline: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          vision: string | null
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          obstacles?: string[] | null
+          reality?: string | null
+          smart_goal: Json
+          timeline?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+          vision?: string | null
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          obstacles?: string[] | null
+          reality?: string | null
+          smart_goal?: Json
+          timeline?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          vision?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
