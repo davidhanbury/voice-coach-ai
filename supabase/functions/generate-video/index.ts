@@ -42,7 +42,18 @@ serve(async (req) => {
     }
 
     console.log('Step 1: Converting text to audio...');
-    console.log('Script length:', script.length);
+    console.log('Original script length:', script.length);
+
+    // To comply with fal.ai Fabric 1.0 max 60s audio limit, truncate script for TTS if needed
+    const MAX_TTS_SCRIPT_LENGTH = 900;
+    let ttsScript = script;
+    if (ttsScript.length > MAX_TTS_SCRIPT_LENGTH) {
+      console.log(
+        `Script too long for TTS (${ttsScript.length} chars). Truncating to ${MAX_TTS_SCRIPT_LENGTH} chars to keep audio under 60 seconds.`,
+      );
+      ttsScript = ttsScript.slice(0, MAX_TTS_SCRIPT_LENGTH);
+      console.log('Truncated script length:', ttsScript.length);
+    }
 
     // Step 1: Convert text to audio using OpenAI TTS
     const ttsResponse = await fetch('https://api.openai.com/v1/audio/speech', {
@@ -53,7 +64,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'tts-1',
-        input: script,
+        input: ttsScript,
         voice: 'alloy',
         response_format: 'mp3',
       }),
