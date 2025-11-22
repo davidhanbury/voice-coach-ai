@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar as CalendarIcon, CheckCircle2, Trophy, Flame, Award } from "lucide-react";
+import { Calendar as CalendarIcon, CheckCircle2, Trophy, Flame, Award, Play } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import BottomNav from "@/components/BottomNav";
 import confetti from "canvas-confetti";
 
@@ -27,6 +28,7 @@ const Today = () => {
   const [showCelebration, setShowCelebration] = useState(false);
   const [streakData, setStreakData] = useState({ current: 0, longest: 0 });
   const [awards, setAwards] = useState<any[]>([]);
+  const [showNewMessageDialog, setShowNewMessageDialog] = useState(false);
   const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
@@ -282,6 +284,26 @@ const Today = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 pb-24">
       <div className="max-w-md mx-auto px-4">
+        {/* New Message Card */}
+        <div className="pt-6 pb-4">
+          <Card 
+            className="cursor-pointer hover:bg-accent/50 transition-colors border-primary/20"
+            onClick={() => setShowNewMessageDialog(true)}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Play className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-sm">New Message from Your Coach</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Click to watch</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Video Section */}
         {videoUrl && (
           <div className="pt-6 pb-4">
@@ -425,6 +447,23 @@ const Today = () => {
           )}
         </div>
       </div>
+      
+      {/* New Message Dialog */}
+      <Dialog open={showNewMessageDialog} onOpenChange={setShowNewMessageDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Message from Your Coach</DialogTitle>
+          </DialogHeader>
+          <video 
+            controls 
+            autoPlay
+            className="w-full rounded-lg"
+            src="/coach-message.mp4"
+          >
+            Your browser does not support the video tag.
+          </video>
+        </DialogContent>
+      </Dialog>
       
       <BottomNav />
     </div>
