@@ -42,6 +42,19 @@ const Today = () => {
     }
   }, []);
   
+  // Refetch goals when user returns to this tab
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchTodayGoals();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+  
   useEffect(() => {
     // Check if all goals completed
     const allCompleted = dailyGoals.length > 0 && dailyGoals.every(g => g.completed);
