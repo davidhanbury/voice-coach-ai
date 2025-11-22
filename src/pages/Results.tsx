@@ -114,15 +114,10 @@ const Results = () => {
             throw new Error('Failed to create daily goals');
           }
           
-          // Navigate to Today page after successful creation
           toast({
             title: "Goals Created!",
-            description: "Navigating to your daily tasks...",
+            description: "Your daily goals are ready to view.",
           });
-          
-          setTimeout(() => {
-            navigate('/today');
-          }, 1500);
         }
       } else {
         toast({
@@ -216,13 +211,8 @@ const Results = () => {
         
         toast({
           title: "Video Generated!",
-          description: "Navigating to Today's Goals...",
+          description: "View your daily goals in the Today tab",
         });
-        
-        // Navigate to Today page after 2 seconds
-        setTimeout(() => {
-          navigate('/today', { state: { videoUrl: data.videoUrl } });
-        }, 2000);
       } else if (data && data.success === false) {
         console.error('Video generation error data:', data);
         if (data.audioUrl) {
