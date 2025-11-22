@@ -24,30 +24,40 @@ serve(async (req) => {
 
     const { socket: clientSocket, response } = Deno.upgradeWebSocket(req);
 
-    // Connect to OpenAI Realtime API with auth via subprotocols (insecure; server-side only)
-    const model = "gpt-4o-realtime-preview-2024-10-01";
-    const openaiUrl = `wss://api.openai.com/v1/realtime?model=${model}`;
-    
-    const openaiSocket = new WebSocket(openaiUrl, [
-      "realtime",
-      `openai-insecure-api-key.${OPENAI_API_KEY}`,
-    ]);
-
+    let openaiSocket: WebSocket | null = null;
     let sessionConfigured = false;
 
-    // Forward messages from OpenAI to client
-    openaiSocket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      console.log("OpenAI -> Client:", data.type);
+    clientSocket.onopen = () => {
+      console.log("Client connected, connecting to OpenAI...");
+      
+      // Connect to OpenAI with API key in Authorization header via protocols
+      // Using the OpenAI insecure API key protocol for server-side connections
+      const model = "gpt-4o-realtime-preview-2024-10-01";
+      const url = `wss://api.openai.com/v1/realtime?model=${model}`;
+      
+      try {
+        openaiSocket = new WebSocket(url, [
+          "realtime",
+          `openai-insecure-api-key.${OPENAI_API_KEY}`,
+          "openai-beta.realtime-v1"
+        ]);
 
-      // Configure session after connection
-      if (data.type === 'session.created' && !sessionConfigured) {
-        sessionConfigured = true;
-        const sessionUpdate = {
-          type: 'session.update',
-          session: {
-            modalities: ['text', 'audio'],
-            instructions: `You are an empathetic AI therapist conducting a voice interview. Your role is to:
+        openaiSocket.onopen = () => {
+          console.log("Connected to OpenAI Realtime API");
+        };
+
+        openaiSocket.onmessage = (event: MessageEvent) => {
+          const data = JSON.parse(event.data as string);
+          console.log("OpenAI -> Client:", data.type);
+
+          // Configure session after connection
+          if (data.type === 'session.created' && !sessionConfigured) {
+            sessionConfigured = true;
+            const sessionUpdate = {
+              type: 'session.update',
+              session: {
+                modalities: ['text', 'audio'],
+                instructions: `You are an empathetic AI therapist conducting a voice interview. Your role is to:
 - Listen actively and ask thoughtful follow-up questions
 - Help the user explore their thoughts and feelings
 - Provide a safe, non-judgmental space
@@ -56,61 +66,77 @@ serve(async (req) => {
 - Ask open-ended questions to encourage sharing
 - Summarize key points when appropriate
 Keep your responses conversational and natural, as if speaking to someone in person.`,
-            voice: 'alloy',
-            input_audio_format: 'pcm16',
-            output_audio_format: 'pcm16',
-            input_audio_transcription: {
-              model: 'whisper-1'
-            },
-            turn_detection: {
-              type: 'server_vad',
-              threshold: 0.5,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 1000
-            },
-            temperature: 0.8,
-            max_response_output_tokens: 'inf'
+                voice: 'alloy',
+                input_audio_format: 'pcm16',
+                output_audio_format: 'pcm16',
+                input_audio_transcription: {
+                  model: 'whisper-1'
+                },
+                turn_detection: {
+                  type: 'server_vad',
+                  threshold: 0.5,
+                  prefix_padding_ms: 300,
+                  silence_duration_ms: 1000
+                },
+                temperature: 0.8,
+                max_response_output_tokens: 4096
+              }
+            };
+            
+            console.log("Configuring session...");
+            openaiSocket?.send(JSON.stringify(sessionUpdate));
+          }
+
+          if (clientSocket.readyState === WebSocket.OPEN) {
+            clientSocket.send(event.data as string);
           }
         };
-        
-        console.log("Configuring session...");
-        openaiSocket.send(JSON.stringify(sessionUpdate));
-      }
 
-      if (clientSocket.readyState === WebSocket.OPEN) {
-        clientSocket.send(event.data);
+        openaiSocket.onerror = (error: Event) => {
+          console.error("OpenAI WebSocket error:", error);
+          if (clientSocket.readyState === WebSocket.OPEN) {
+            clientSocket.send(JSON.stringify({
+              type: 'error',
+              error: { message: 'OpenAI connection error' }
+            }));
+          }
+          clientSocket.close();
+        };
+
+        openaiSocket.onclose = () => {
+          console.log("OpenAI connection closed");
+          clientSocket.close();
+        };
+      } catch (error) {
+        console.error("Error creating OpenAI WebSocket:", error);
+        if (clientSocket.readyState === WebSocket.OPEN) {
+          clientSocket.send(JSON.stringify({
+            type: 'error',
+            error: { message: error instanceof Error ? error.message : 'Connection failed' }
+          }));
+        }
+        clientSocket.close();
       }
     };
 
     // Forward messages from client to OpenAI
     clientSocket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+      const data = JSON.parse(event.data as string);
       console.log("Client -> OpenAI:", data.type);
       
-      if (openaiSocket.readyState === WebSocket.OPEN) {
-        openaiSocket.send(event.data);
+      if (openaiSocket?.readyState === WebSocket.OPEN) {
+        openaiSocket.send(event.data as string);
       }
-    };
-
-    // Handle errors and cleanup
-    openaiSocket.onerror = (error) => {
-      console.error("OpenAI WebSocket error:", error);
-      clientSocket.close();
     };
 
     clientSocket.onerror = (error) => {
       console.error("Client WebSocket error:", error);
-      openaiSocket.close();
-    };
-
-    openaiSocket.onclose = () => {
-      console.log("OpenAI connection closed");
-      clientSocket.close();
+      openaiSocket?.close();
     };
 
     clientSocket.onclose = () => {
       console.log("Client connection closed");
-      openaiSocket.close();
+      openaiSocket?.close();
     };
 
     return response;
